@@ -2,6 +2,7 @@ from TwitterAPI import TwitterAPI
 import PWs
 import sqlite3
 from time import time
+import os
 
 class streamReader:
 
@@ -13,7 +14,7 @@ class streamReader:
 
         #Create DB Connection
         self.conn = sqlite3.connect('trendtweets.db')
-        self.c = conn.cursor()
+        self.c = self.conn.cursor()
 
     def init_database(self):
         # Create table and index tags
@@ -40,7 +41,7 @@ class streamReader:
 
         for item in r:
             if 'text' in item:
-                c.execute('INSERT INTO tweets (tag, content) \
+                self.c.execute('INSERT INTO tweets (tag, content) \
                 VALUES (?, ?)', (TRACK_TERM, clean_phrase(item['text'])))
             n+=1
             # print(time() - t)
@@ -51,24 +52,38 @@ class streamReader:
                 break
 
     def _getTrend(self):
-        r = api.request('trends/place', {'id': 1, 'lang': 'en'})
-        i = 0
-        trends = []
-        for every in r:
-            if every['name'][0] != '#':
-                continue
-            trends.append(every['name'])
-            # if(every['name'][0] == '#') and i != 0:
-            #     getTweet(every['name'])
-            #     break
-            # i += 1
+        if os.stat("trends.txt").st_size == 0:
+            trends_f = open('trends.txt' , 'w')
+            r = self.api.request('trends/place', {'id': 1, 'lang': 'en'})
+            i = 0
+            trends = []
+            for every in r:
+                if every['name'][0] != '#':
+                    continue
+                trends.append(every['name'])
+                # if(every['name'][0] == '#') and i != 0:
+                #     getTweet(every['name'])
+                #     break
+                # i += 1
+            for trend in trends:
+                trends_f.write(':1\n' % trend)
+            trends_f.close()
+        else:
+            trends_f = open('trends.txt', 'r')
+            read_data = trends_f.read()
+            trends = []
+            for line in read_data:
+                if line[-1] == '\n':
+                    line = line[:-1]
+                trends.append(line)
         return trends
 
     def getTrends(self):
+        self.track_trends = self._getTrend()
         return self.track_trends
 
     def getTweets(self, tag):
-        cursor = conn.execute("SELECT * FROM tweets WHERE tag = ?", (trend, ))
+        cursor = self.conn.execute("SELECT * FROM tweets WHERE tag = ?", (tag, ))
         return [row[1] for row in cursor]
 
     def clean_phrase(text):
@@ -82,7 +97,7 @@ class streamReader:
 
     def example_2():
         for trend in self.track_trends:
-            cursor = conn.execute("SELECT * FROM tweets WHERE tag = ?", (trend, ))
+            cursor = self.conn.execute("SELECT * FROM tweets WHERE tag = ?", (trend, ))
             print '===============', trend, '==============='
             for row in cursor:
                    print "TAG = ", row[0]

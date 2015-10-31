@@ -1,8 +1,10 @@
 import random
 
+BEGINNING_OF_SENTENCE = 0
+END_OF_SENTENCE = 1
+
 class words:
-    BEGINNING_OF_SENTENCE = 0
-    END_OF_SENTENCE = 1
+
 
     def __init__(self, caseSensitive=False):
         """
@@ -25,6 +27,8 @@ class words:
             if type(next) is str:
                 next = next.lower()
 
+        if prev not in self._words:
+            self._words[prev] = dict()
         if next not in self._words[prev]:
             self._words[prev][next] = 0
         self._words[prev][next] += 1
@@ -38,11 +42,13 @@ class words:
         tokens = sentence.split()
         if not self._caseSensitive:
             tokens = [word.lower() for word in tokens]
+        if len(tokens) == 0:
+            return
 
-        add_subsequent_word(BEGINNING_OF_SENTENCE, tokens[0])
+        self.add_subsequent_word(BEGINNING_OF_SENTENCE, tokens[0])
         for i in xrange(len(tokens) - 1):
-            add_subsequent_word(tokens[i], tokens[i+1])
-        add_subsequent_word(tokens[-1], END_OF_SENTENCE)
+            self.add_subsequent_word(tokens[i], tokens[i+1])
+        self.add_subsequent_word(tokens[-1], END_OF_SENTENCE)
 
     def gen_next(self, prev):
         """
@@ -67,11 +73,8 @@ class words:
         """
         s = ''
         start = BEGINNING_OF_SENTENCE
-        next_word += gen_next(start)
-        while len(s) +len(next_word) <=maxlength:
-            s += next_word
-            if next_word != END_OF_SENTENCE:
-                next_word = gen_next(next_word)
-            else:
-                break
+        next_word = self.gen_next(start)
+        while next_word != END_OF_SENTENCE and len(s) + len(next_word) <=maxlength:
+            s += ' ' + next_word
+            next_word = self.gen_next(next_word)
         return s
